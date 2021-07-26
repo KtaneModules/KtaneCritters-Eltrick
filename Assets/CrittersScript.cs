@@ -277,6 +277,8 @@ public class CrittersScript : ModuleScript
     
     private void PressResetButton()
     {
+        if (_isModuleSolved || _isAnimationRunning)
+			return;
         for (int i = 0; i < 64; i++)
 		{
 			switch (_submissionGrid[i])
