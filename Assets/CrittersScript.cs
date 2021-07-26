@@ -9,15 +9,12 @@ using Rnd = UnityEngine.Random;
 
 public class CrittersScript : ModuleScript
 {
-	public KMSelectable SubmitButton;
-	public KMSelectable ReferenceTile;
+	public KMSelectable SubmitButton, ResetButton, ReferenceTile;
 	public GameObject ReferenceObject;
-	public MeshRenderer ReferenceMesh;
-	public MeshRenderer SubmitButtonMesh;
-	public MeshRenderer ColourblindKey;
-	public Material[] States;
-	public Material[] Alterations;
+	public MeshRenderer ReferenceMesh, SubmitButtonMesh, ResetButtonMesh, ColourblindKey;
+	public Material[] States, Alterations;
 	public TextMesh ColourblindText;
+    public AudioClip[] ButtonSounds;
 
 	private KMBombModule _module;
 	private KMSelectable[] _Tiles = new KMSelectable[64];
@@ -37,7 +34,7 @@ public class CrittersScript : ModuleScript
 	private string[] _shortenedColourNames = new string[3] { "Y", "P", "B" };
 	private string[] _colourNames = new string[3] { "Yellow", "Pink", "Blue" };
 	private string[] _alterationLogging = new string[3] { "using the standard ruleset", "using the alternative ruleset", "using the reverse ruleset" };
-	private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning;
+	private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted;
 	private int _seed, _randomiser;
 	private float[] _referenceCoordinate = new float[3];
 	private string _grid;
@@ -77,6 +74,10 @@ public class CrittersScript : ModuleScript
 		SubmitButton.Assign(onHighlight: () => { _isSubmitButtonHighlighted = true; });
 		SubmitButton.Assign(onHighlightEnded: () => { _isSubmitButtonHighlighted = false; });
 		SubmitButton.Assign(onInteract: () => { PressSubmitButton(); });
+        
+        ResetButton.Assign(onHighlight: () => { _isResetButtonHighlighted = true; });
+		ResetButton.Assign(onHighlightEnded: () => { _isResetButtonHighlighted = false; });
+		ResetButton.Assign(onInteract: () => { PressResetButton(); });
 
 		_module.GetComponent<KMSelectable>().UpdateChildren();
 
@@ -176,7 +177,7 @@ public class CrittersScript : ModuleScript
 
 	private void PressTile(int index)
     {
-		ButtonEffect(_Tiles[index], 0.5f, Sound.ButtonPress);
+		ButtonEffect(_Tiles[index], 0.5f, ButtonSounds[0]);
 		if (_isModuleSolved || _isAnimationRunning)
 			return;
 		switch(_submissionGrid[index])
@@ -222,7 +223,8 @@ public class CrittersScript : ModuleScript
 
 	private void PressSubmitButton()
     {
-		ButtonEffect(SubmitButton, 1, Sound.ButtonPress);
+		if (_isModuleSolved || _isAnimationRunning)
+			return;
 		string log = "";
 		string logExpected = "";
 
@@ -262,12 +264,41 @@ public class CrittersScript : ModuleScript
 		else
 		{
 			Solve("Submitted correct grid.");
+            ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
+			StartCoroutine(PostSolve());
+			SubmitButton.transform.localPosition -= new Vector3(0, 0.003f, 0);
 			_isModuleSolved = true;
 			SubmitButtonMesh.material = Alterations[3];
 			ColourblindText.text = "!";
 			ColourblindText.color = new Color32(32, 32, 32, 255);
 			ColourblindKey.material = Alterations[3];
-			StartCoroutine(PostSolve());
+		}
+    }
+    
+    private void PressResetButton()
+    {
+        for (int i = 0; i < 64; i++)
+		{
+			switch (_submissionGrid[i])
+			{
+				case "0":
+					_TileMeshes[i].material = States[0];
+					break;
+				case "1":
+					_TileMeshes[i].material = Alterations[_randomiser];
+					_Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
+					break;
+			}
+			_submissionGrid[i] = _grid[i].ToString();
+			switch (_grid[i])
+			{
+				case '1':
+					_TileMeshes[i].material = Alterations[_randomiser];
+					_Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
+					break;
+				default:
+					break;
+			}
 		}
     }
 
@@ -347,6 +378,84 @@ public class CrittersScript : ModuleScript
 				SubmitButtonMesh.material = States[2];
 			else
 				SubmitButtonMesh.material = States[0];
+            if (_isResetButtonHighlighted)
+                ResetButtonMesh.material = States[2];
+            else
+                ResetButtonMesh.material = States[0];
 		}
     }
+
+	// TP Support ?
+
+#pragma warning disable 414
+	private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit' or '!{0} s' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state.";
+#pragma warning restore 414
+
+	IEnumerator ProcessTwitchCommand(string input)
+    {
+		string[] split = input.ToLowerInvariant().Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+		Dictionary<string, KMSelectable> buttonNames = new Dictionary<string, KMSelectable>()
+		{
+			{ "submit", SubmitButton },
+			{ "s", SubmitButton },
+            { "reset", ResetButton },
+            { "r", ResetButton }
+		};
+
+		List<KMSelectable> Tiles = new List<KMSelectable>();
+
+		foreach (string button in split)
+        {
+			KMSelectable Tile;
+			if (button.Length == 2)
+			{
+				int row = button[0] - 'a';
+				int col = button[1] - '1';
+
+				if (row < 0 || col < 0 || row > 7 || col > 7) yield return null;
+
+				Tiles.Add(_Tiles[(8 * col) + row]);
+			}
+			else if (buttonNames.TryGetValue(button, out Tile))
+				Tiles.Add(Tile);
+        }
+
+		if(Tiles.Count() == 0)
+			yield return null;
+		else
+        {
+			foreach (KMSelectable Tile in Tiles)
+            {
+				yield return null;
+				Tile.OnInteract();
+				yield return new WaitForSeconds(0.1f);
+			}
+        }
+    }
+
+	IEnumerator TwitchHandleForcedSolve()
+    {
+		List<KMSelectable> TilesToPress = new List<KMSelectable>();
+        Log("Module was force-solved by Twitch Plays.");
+
+		for (int i = 0; i < 64; i++)
+        {
+			if (_submissionGrid[i] != _expectedGrid[i])
+			{
+				yield return null;
+				TilesToPress.Add(_Tiles[i]);
+			}
+		}
+
+		TilesToPress.Add(SubmitButton);
+        
+		foreach (KMSelectable Tile in TilesToPress)
+        {
+            yield return new WaitForSeconds(0.1f);
+			yield return null;
+			Tile.OnInteract();
+			yield return true;
+        }
+	}
 }
