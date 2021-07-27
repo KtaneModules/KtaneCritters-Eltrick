@@ -27,14 +27,14 @@ public class CrittersScript : ModuleScript
     private int[,] _currentState = new int[8, 8];
     private int[][] _iterators = new int[3][]
     {
-        new int[] {15, 14, 13, 3, 11, 5, 6, 1, 7, 9, 10, 2, 12, 4, 8, 0}, //normal
-        new int[] {0, 1, 2, 12, 4, 10, 9, 14, 8, 6, 5, 13, 3, 11, 7, 15}, //alternative
-        new int[] {15, 7, 11, 3, 13, 5, 6, 8, 14, 9, 10, 4, 12, 2, 1, 0}  //reverse
+        new int[] {15, 14, 13, 03, 11, 05, 06, 01, 07, 09, 10, 02, 12, 04, 08, 00}, //normal
+        new int[] {00, 01, 02, 12, 04, 10, 09, 14, 08, 06, 05, 13, 03, 11, 07, 15}, //alternative
+        new int[] {15, 07, 11, 03, 13, 05, 06, 08, 14, 09, 10, 04, 12, 02, 01, 00}  //reverse
     };
     private string[] _shortenedColourNames = new string[3] { "Y", "P", "B" };
     private string[] _colourNames = new string[3] { "Yellow", "Pink", "Blue" };
     private string[] _alterationLogging = new string[3] { "using the standard ruleset", "using the alternative ruleset", "using the reverse ruleset" };
-    private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted;
+    private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted, _isModuleBeingAutoSolved;
     private int _seed, _randomiser;
     private float[] _referenceCoordinate = new float[3];
     private string _grid;
@@ -390,11 +390,13 @@ public class CrittersScript : ModuleScript
     // TP Support ?
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit' or '!{0} s' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state.";
+    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit' or '!{0} s' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. All commands are chainable using spaces.";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string input)
     {
+        if (_isModuleBeingAutoSolved)
+            yield break;
         string[] split = input.ToLowerInvariant().Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
         Dictionary<string, KMSelectable> buttonNames = new Dictionary<string, KMSelectable>()
@@ -438,6 +440,7 @@ public class CrittersScript : ModuleScript
 
     IEnumerator TwitchHandleForcedSolve()
     {
+        _isModuleBeingAutoSolved = true;
         List<KMSelectable> TilesToPress = new List<KMSelectable>();
         Log("Module was force-solved by Twitch Plays.");
 
