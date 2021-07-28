@@ -16,11 +16,11 @@ public class CrittersScript : ModuleScript
     public TextMesh ColourblindText;
     public AudioClip[] ButtonSounds;
 
-    private KMBombModule _module;
+    private KMBombModule _Module;
     private KMSelectable[] _Tiles = new KMSelectable[64];
     private MeshRenderer[] _TileMeshes = new MeshRenderer[64];
     private IEnumerator _ButtonCoroutine;
-    private System.Random _rnd;
+    private System.Random _Rnd;
 
     private bool[] _isTileHighlighted = new bool[64];
     private int[,] _isTileAlive = new int[8, 8];
@@ -50,10 +50,10 @@ public class CrittersScript : ModuleScript
             _isSeedSet = true;
         }
 
-        _rnd = new System.Random(_seed);
+        _Rnd = new System.Random(_seed);
         // SET SEED ABOVE IN CASE OF BUGS!!
         // _rnd = new System.Random(loggedSeed);
-        _module = Get<KMBombModule>();
+        _Module = Get<KMBombModule>();
 
         _referenceCoordinate[0] = ReferenceTile.transform.localPosition.x;
         _referenceCoordinate[1] = ReferenceTile.transform.localPosition.y;
@@ -62,9 +62,9 @@ public class CrittersScript : ModuleScript
         for (int i = 0; i < 64; i++)
         {
             var x = i;
-            _Tiles[i] = Instantiate(ReferenceTile, _module.transform);
+            _Tiles[i] = Instantiate(ReferenceTile, _Module.transform);
             _TileMeshes[i] = _Tiles[i].GetComponentInChildren<MeshRenderer>();
-            _module.GetComponent<KMSelectable>().Children[i] = _Tiles[i];
+            _Module.GetComponent<KMSelectable>().Children[i] = _Tiles[i];
             _Tiles[i].Assign(onHighlight: () => { _isTileHighlighted[x] = true; });
             _Tiles[i].Assign(onHighlightEnded: () => { _isTileHighlighted[x] = false; });
             _Tiles[i].Assign(onInteract: () => { PressTile(x); });
@@ -78,7 +78,7 @@ public class CrittersScript : ModuleScript
         ResetButton.Assign(onHighlightEnded: () => { _isResetButtonHighlighted = false; });
         ResetButton.Assign(onInteract: () => { PressResetButton(); });
 
-        _module.GetComponent<KMSelectable>().UpdateChildren();
+        _Module.GetComponent<KMSelectable>().UpdateChildren();
 
         if(!_isGridGenerated)
         {
@@ -90,7 +90,7 @@ public class CrittersScript : ModuleScript
 
     private void GenerateTiles()
     {
-        _randomiser = _rnd.Next(0, 3);
+        _randomiser = _Rnd.Next(0, 3);
 
         ColourblindText.text = _colourNames[_randomiser][0].ToString();
         ColourblindText.color = new Color32[] { new Color32(255, 255, 128, 255), new Color32(255, 128, 255, 255), new Color32(128, 192, 255, 255) }[_randomiser];
@@ -101,7 +101,7 @@ public class CrittersScript : ModuleScript
         {
             _Tiles[i].transform.localPosition = new Vector3(_referenceCoordinate[0] + (i % 8) * 0.0166f, _referenceCoordinate[1], _referenceCoordinate[2] - ((i / 8) % 8) * 0.0166f);
 
-            int gen = _rnd.Next(0, 2);
+            int gen = _Rnd.Next(0, 2);
             _isTileAlive[i / 8, i % 8] = gen;
             _submissionGrid[i] = gen;
             switch (gen)
@@ -118,7 +118,6 @@ public class CrittersScript : ModuleScript
 
         for (int tile = 0; tile < 64; tile++)
         {
-
             if (_isTileAlive[tile / 8, tile % 8] == 1)
                 _grid += "1";
             else
@@ -316,7 +315,7 @@ public class CrittersScript : ModuleScript
                         break;
                 }
             }
-            yield return new WaitForSeconds(.5f);
+            yield return new WaitForSeconds(1f);
         }
     }
 
@@ -377,7 +376,8 @@ public class CrittersScript : ModuleScript
                 int row = button[0] - 'a';
                 int col = button[1] - '1';
 
-                if (row < 0 || col < 0 || row > 7 || col > 7) yield return null;
+                if (row < 0 || col < 0 || row > 7 || col > 7)
+                    yield return null;
 
                 Tiles.Add(_Tiles[(8 * col) + row]);
             }
@@ -388,14 +388,12 @@ public class CrittersScript : ModuleScript
         if(Tiles.Count() == 0)
             yield return null;
         else
-        {
             foreach (KMSelectable Tile in Tiles)
             {
                 yield return null;
                 Tile.OnInteract();
                 yield return new WaitForSeconds(0.1f);
             }
-        }
     }
 
     IEnumerator TwitchHandleForcedSolve()
@@ -405,13 +403,11 @@ public class CrittersScript : ModuleScript
         Log("Module was force-solved by Twitch Plays.");
 
         for (int i = 0; i < 64; i++)
-        {
             if (_submissionGrid[i] != _expectedGrid[i])
             {
                 yield return null;
                 TilesToPress.Add(_Tiles[i]);
             }
-        }
 
         TilesToPress.Add(SubmitButton);
         
