@@ -266,7 +266,8 @@ public class CrittersScript : ModuleScript
             Solve("Submitted correct grid.");
             ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
             StartCoroutine(PostSolve());
-            SubmitButton.transform.localPosition -= new Vector3(0, 0.003f, 0);
+            SubmitButton.transform.localPosition += new Vector3(0, 0.003f, 0);
+            ResetButton.transform.localPosition += new Vector3(0, 0.003f, 0);
             _isModuleSolved = true;
             SubmitButtonMesh.material = Alterations[3];
             ColourblindText.text = "!";
@@ -347,11 +348,11 @@ public class CrittersScript : ModuleScript
                 switch (_currentState[row, column])
                 {
                     case 0:
-                        _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0175f, _Tiles[i].transform.localPosition.z);
+                        _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0145f, _Tiles[i].transform.localPosition.z);
                         _TileMeshes[i].material = States[0];
                         break;
                     case 1:
-                        _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0145f, _Tiles[i].transform.localPosition.z);
+                        _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0175f, _Tiles[i].transform.localPosition.z);
                         _TileMeshes[i].material = Alterations[3];
                         break;
                 }
@@ -457,10 +458,10 @@ public class CrittersScript : ModuleScript
         
         foreach (KMSelectable Tile in TilesToPress)
         {
+            yield return true;
             yield return new WaitForSeconds(0.1f);
             yield return null;
             Tile.OnInteract();
-            yield return true;
         }
     }
 }
