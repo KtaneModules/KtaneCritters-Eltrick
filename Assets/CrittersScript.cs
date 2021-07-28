@@ -31,15 +31,14 @@ public class CrittersScript : ModuleScript
         new int[] {00, 01, 02, 12, 04, 10, 09, 14, 08, 06, 05, 13, 03, 11, 07, 15}, //alternative
         new int[] {15, 07, 11, 03, 13, 05, 06, 08, 14, 09, 10, 04, 12, 02, 01, 00}  //reverse
     };
-    private string[] _shortenedColourNames = new string[3] { "Y", "P", "B" };
     private string[] _colourNames = new string[3] { "Yellow", "Pink", "Blue" };
     private string[] _alterationLogging = new string[3] { "using the standard ruleset", "using the alternative ruleset", "using the reverse ruleset" };
     private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted, _isModuleBeingAutoSolved;
     private int _seed, _randomiser;
     private float[] _referenceCoordinate = new float[3];
     private string _grid;
-    private string[] _submissionGrid = new string[64];
-    private string[] _expectedGrid = new string[64];
+    private int[] _submissionGrid = new int[64];
+    private int[] _expectedGrid = new int[64];
 
     // Use this for initialization
     private void Start()
@@ -92,40 +91,26 @@ public class CrittersScript : ModuleScript
     private void GenerateTiles()
     {
         _randomiser = _rnd.Next(0, 3);
-        ColourblindText.text = _shortenedColourNames[_randomiser];
-        switch(_randomiser)
-        {
-            case 0:
-                ColourblindText.color = new Color32(255, 255, 128, 255);
-                break;
-            case 1:
-                ColourblindText.color = new Color32(255, 128, 255, 255);
-                break;
-            case 2:
-                ColourblindText.color = new Color32(128, 192, 255, 255);
-                break;
-        }
+
+        ColourblindText.text = _colourNames[_randomiser][0].ToString();
+        ColourblindText.color = new Color32[] { new Color32(255, 255, 128, 255), new Color32(255, 128, 255, 255), new Color32(128, 192, 255, 255) }[_randomiser];
+
         Log("The colour shown on the module is " + _colourNames[_randomiser] + ", which indicates that we will be " + _alterationLogging[_randomiser] + ".");
 
         for (int i = 0; i < 64; i++)
         {
-            int row = (int)Math.Floor((double)(i / 8));
-            int column = i % 8;
+            _Tiles[i].transform.localPosition = new Vector3(_referenceCoordinate[0] + (i % 8) * 0.0166f, _referenceCoordinate[1], _referenceCoordinate[2] - ((i / 8) % 8) * 0.0166f);
 
-            _Tiles[i].transform.localPosition = new Vector3(_referenceCoordinate[0] + (column % 8) * 0.0166f, _referenceCoordinate[1], _referenceCoordinate[2] - (row % 8) * 0.0166f);
-            
             int gen = _rnd.Next(0, 2);
+            _isTileAlive[i / 8, i % 8] = gen;
+            _submissionGrid[i] = gen;
             switch (gen)
             {
                 case 0:
-                    _isTileAlive[row, column] = 0;
-                    _submissionGrid[i] = "0";
                     _TileMeshes[i].material = States[0];
                     _Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
                     break;
                 case 1:
-                    _isTileAlive[row, column] = 1;
-                    _submissionGrid[i] = "1";
                     _TileMeshes[i].material = Alterations[_randomiser];
                     break;
             }
@@ -133,15 +118,13 @@ public class CrittersScript : ModuleScript
 
         for (int tile = 0; tile < 64; tile++)
         {
-            int row = (int)Math.Floor((double)(tile / 8));
-            int column = tile % 8;
 
-            if (_isTileAlive[row, column] == 1)
+            if (_isTileAlive[tile / 8, tile % 8] == 1)
                 _grid += "1";
             else
                 _grid += "0";
 
-            _expectedGrid[tile] = "0";
+            _expectedGrid[tile] = 0;
         }
 
         Log("The grid was: " + _grid);
@@ -152,23 +135,14 @@ public class CrittersScript : ModuleScript
         {
             _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
             string current = "";
-            for(int j = 0; j < 8; j++)
-                for (int k = 0; k < 8; k++)
-                    current += _currentState[j, k].ToString();
+
+            for(int j = 0; j < 64; j++)
+                current += _currentState[j / 8, j % 8].ToString();
+
             Log("IP#" + (i + 1).ToString() + ": " + current);
         }
 
-        string logMessage = "";
-
-        for (int i = 0; i < 64; i++)
-        {
-            int row = (int)Math.Floor((double)(i / 8));
-            int column = i % 8;
-
-            _expectedGrid[i] = _currentState[row, column].ToString();
-            logMessage += _expectedGrid[i];
-        }
-        Log("The expected grid is: " + logMessage);
+        Log("The expected grid is: " + _expectedGrid.Join(""));
     }
 
     private void PressTile(int index)
@@ -178,16 +152,16 @@ public class CrittersScript : ModuleScript
             return;
         switch(_submissionGrid[index])
         {
-            case "0":
-                _submissionGrid[index] = "1";
+            case 0:
+                _submissionGrid[index] = 1;
                 if(_ButtonCoroutine == null)
                 {
                     _ButtonCoroutine = ButtonAnimation(index, "1");
                     StartCoroutine(_ButtonCoroutine);
                 }
                 break;
-            case "1":
-                _submissionGrid[index] = "0";
+            case 1:
+                _submissionGrid[index] = 0;
                 if (_ButtonCoroutine == null)
                 {
                     _ButtonCoroutine = ButtonAnimation(index, "0");
@@ -219,31 +193,24 @@ public class CrittersScript : ModuleScript
     {
         if (_isModuleSolved || _isAnimationRunning)
             return;
-        string log = "";
-        string logExpected = "";
 
-        for (int i = 0; i < 64; i++)
+        if (_submissionGrid.Join("") != _expectedGrid.Join(""))
         {
-            log += _submissionGrid[i];
-            logExpected += _expectedGrid[i];
-        }
+            Strike("Submitted grid: " + _submissionGrid.Join("") + ". Expected grid: " + _expectedGrid.Join("") + ".");
 
-        if (log != logExpected)
-        {
-            Strike("Submitted grid: " + log + ". Expected grid: " + logExpected + ".");
             for (int i = 0; i < 64; i++)
             {
                 switch (_submissionGrid[i])
                 {
-                    case "0":
+                    case 0:
                         _TileMeshes[i].material = States[0];
                         break;
-                    case "1":
+                    case 1:
                         _TileMeshes[i].material = Alterations[_randomiser];
                         _Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
                         break;
                 }
-                _submissionGrid[i] = _grid[i].ToString();
+                _submissionGrid[i] = _grid[i];
                 switch (_grid[i])
                 {
                     case '1':
@@ -278,23 +245,21 @@ public class CrittersScript : ModuleScript
         {
             switch (_submissionGrid[i])
             {
-                case "0":
+                case 0:
                     _TileMeshes[i].material = States[0];
                     break;
-                case "1":
+                case 1:
                     _TileMeshes[i].material = Alterations[_randomiser];
                     _Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
                     break;
             }
-            _submissionGrid[i] = _grid[i].ToString();
-            switch (_grid[i])
+
+            _submissionGrid[i] = _grid[i];
+
+            if (_grid[i] == '1')
             {
-                case '1':
-                    _TileMeshes[i].material = Alterations[_randomiser];
-                    _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
-                    break;
-                default:
-                    break;
+                _TileMeshes[i].material = Alterations[_randomiser];
+                _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
             }
         }
     }
@@ -303,6 +268,7 @@ public class CrittersScript : ModuleScript
     {
         _isAnimationRunning = true;
         var originalLocation = _Tiles[index].transform.localPosition;
+
         if(state == "1")
         {
             for(int i = 0; i <= 3; i++)
@@ -321,6 +287,7 @@ public class CrittersScript : ModuleScript
             }
             _TileMeshes[index].material = Alterations[_randomiser];
         }
+
         _isAnimationRunning = false;
         _ButtonCoroutine = null;
     }
@@ -334,10 +301,7 @@ public class CrittersScript : ModuleScript
                 _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
             for (int i = 0; i < 64; i++)
             {
-                int row = (int)Math.Floor((double)(i / 8));
-                int column = i % 8;
-
-                switch (_currentState[row, column])
+                switch (_currentState[i / 8, i % 8])
                 {
                     case 0:
                         _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0145f, _Tiles[i].transform.localPosition.z);
@@ -349,7 +313,7 @@ public class CrittersScript : ModuleScript
                         break;
                 }
             }
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(.5f);
         }
     }
 
@@ -363,7 +327,7 @@ public class CrittersScript : ModuleScript
                     _TileMeshes[i].material = States[2];
                 else
                 {
-                    if (_submissionGrid[i] == "1")
+                    if (_submissionGrid[i] == 1)
                         _TileMeshes[i].material = Alterations[_randomiser];
                     else
                         _TileMeshes[i].material = States[0];
