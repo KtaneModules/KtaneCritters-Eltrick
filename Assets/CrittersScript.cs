@@ -153,12 +153,8 @@ public class CrittersScript : ModuleScript
             _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
             string current = "";
             for(int j = 0; j < 8; j++)
-            {
                 for (int k = 0; k < 8; k++)
-                {
                     current += _currentState[j, k].ToString();
-                }
-            }
             Log("IP#" + (i + 1).ToString() + ": " + current);
         }
 
@@ -214,9 +210,7 @@ public class CrittersScript : ModuleScript
                     state += current[(i * 2 + k % 2 + offset) % 8, (j * 2 + k / 2 + offset) % 8];
                 }
                 for (int k = 0; k < 4; k++)
-                {
                     newGrid[(i * 2 + k % 2 + offset) % 8, (j * 2 + k / 2 + offset) % 8] = (iterator[state] >> (3 - k)) % 2;
-                }
             }
         return newGrid;
     }
@@ -337,9 +331,7 @@ public class CrittersScript : ModuleScript
         while(true)
         {
             for (int i = 0; i < 2; i++)
-            {
                 _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
-            }
             for (int i = 0; i < 64; i++)
             {
                 int row = (int)Math.Floor((double)(i / 8));
