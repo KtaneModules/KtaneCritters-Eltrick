@@ -14,8 +14,13 @@ MonoBehaviour:
   id: CrittersModule
   title: Critters
   author: Eltrick, Obvious
-  description: We loved bugs so much that we made a module based on one of them. Well
-    not really but yeah.
-  version: 0.69.8
+  description: 'We loved bugs so much that we made a module based on one of them.
+    Well not really but yeah.
+
+    feat. Obvious
+
+
+    PS. Yes the version contains 69 in it, sue me.'
+  version: 0.69.813
   outputFolder: build
   previewImage: {fileID: 2800000, guid: b68ee785c0080fe4bbe10bd4ecf75e1f, type: 3}
