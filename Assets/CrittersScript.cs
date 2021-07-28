@@ -136,8 +136,11 @@ public class CrittersScript : ModuleScript
             _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
             string current = "";
 
-            for(int j = 0; j < 64; j++)
+            for (int j = 0; j < 64; j++)
+            {
                 current += _currentState[j / 8, j % 8].ToString();
+                _expectedGrid[j] = _currentState[j / 8, j % 8];
+            }
 
             Log("IP#" + (i + 1).ToString() + ": " + current);
         }
