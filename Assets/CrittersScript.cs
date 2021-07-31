@@ -36,7 +36,7 @@ public class CrittersScript : ModuleScript
     private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted, _isModuleBeingAutoSolved;
     private int _seed, _randomiser;
     private float[] _referenceCoordinate = new float[3];
-    private string _grid;
+    private int[] _grid = new int[64];
     private int[] _submissionGrid = new int[64];
     private int[] _expectedGrid = new int[64];
 
@@ -45,7 +45,7 @@ public class CrittersScript : ModuleScript
     {
         if(!_isSeedSet)
         {
-            _seed = Rnd.Range(Int32.MinValue, Int32.MaxValue);
+            _seed = Rnd.Range(int.MinValue, int.MaxValue);
             Log("The seed is: " + _seed.ToString());
             _isSeedSet = true;
         }
@@ -82,8 +82,8 @@ public class CrittersScript : ModuleScript
 
         if(!_isGridGenerated)
         {
-            GenerateTiles();
             _isGridGenerated = true;
+            GenerateTiles();
         }
         ReferenceObject.SetActive(false);
     }
@@ -119,14 +119,14 @@ public class CrittersScript : ModuleScript
         for (int tile = 0; tile < 64; tile++)
         {
             if (_isTileAlive[tile / 8, tile % 8] == 1)
-                _grid += "1";
+                _grid[tile] = 1;
             else
-                _grid += "0";
+                _grid[tile] = 0;
 
             _expectedGrid[tile] = 0;
         }
 
-        Log("The grid was: " + _grid);
+        Log("The grid was: " + _grid.Join("").ToString());
 
         _currentState = _isTileAlive;
 
@@ -198,7 +198,7 @@ public class CrittersScript : ModuleScript
 
         if (_submissionGrid.Join("") != _expectedGrid.Join(""))
         {
-            Strike("Submitted grid: " + _submissionGrid.Join("") + ". Expected grid: " + _expectedGrid.Join("") + ".");
+            Strike("Submitted grid: " + _submissionGrid.Join("") + ". Expected grid: " + _expectedGrid.Join("") + ". Strike!");
 
             for (int i = 0; i < 64; i++)
             {
@@ -215,7 +215,7 @@ public class CrittersScript : ModuleScript
                 _submissionGrid[i] = _grid[i];
                 switch (_grid[i])
                 {
-                    case '1':
+                    case 1:
                         _TileMeshes[i].material = Alterations[_randomiser];
                         _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
                         break;
@@ -258,7 +258,7 @@ public class CrittersScript : ModuleScript
 
             _submissionGrid[i] = _grid[i];
 
-            if (_grid[i] == '1')
+            if (_grid[i] == 1)
             {
                 _TileMeshes[i].material = Alterations[_randomiser];
                 _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
@@ -315,7 +315,7 @@ public class CrittersScript : ModuleScript
                         break;
                 }
             }
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(.75f);
         }
     }
 
