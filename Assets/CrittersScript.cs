@@ -126,7 +126,8 @@ public class CrittersScript : ModuleScript
             _expectedGrid[tile] = 0;
         }
 
-        Log("The grid was: " + _grid.Join("").ToString());
+        Log("The grid was:");
+        Log(_grid.Join("").ToString());
 
         _currentState = _isTileAlive;
 
@@ -141,10 +142,12 @@ public class CrittersScript : ModuleScript
                 _expectedGrid[j] = _currentState[j / 8, j % 8];
             }
 
-            Log("IP#" + (i + 1).ToString() + ": " + current);
+            Log("IP#" + (i + 1).ToString() + ": ");
+            Log(current);
         }
 
-        Log("The expected grid is: " + _expectedGrid.Join(""));
+        Log("The expected grid is: ");
+        Log(_expectedGrid.Join(""));
     }
 
     private void PressTile(int index)
