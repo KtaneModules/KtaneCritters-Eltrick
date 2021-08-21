@@ -407,19 +407,24 @@ public class CrittersScript : ModuleScript
 
         for (int i = 0; i < 64; i++)
             if (_submissionGrid[i] != _expectedGrid[i])
-            {
-                yield return null;
                 TilesToPress.Add(_Tiles[i]);
-            }
-
-        TilesToPress.Add(SubmitButton);
         
         foreach (KMSelectable Tile in TilesToPress)
         {
-            yield return true;
-            yield return new WaitForSeconds(0.1f);
             yield return null;
             Tile.OnInteract();
+            yield return new WaitForSeconds(0.1f);
         }
+        
+        Solve("This module was forcefully solved.");
+        ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
+        StartCoroutine(PostSolve());
+        SubmitButton.transform.localPosition += new Vector3(0, 0.003f, 0);
+        ResetButton.transform.localPosition += new Vector3(0, 0.003f, 0);
+        _isModuleSolved = true;
+        SubmitButtonMesh.material = Alterations[3];
+        ColourblindText.text = "!";
+        ColourblindText.color = new Color32(32, 32, 32, 255);
+        ColourblindKey.material = Alterations[3];
     }
 }
