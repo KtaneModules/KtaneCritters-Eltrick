@@ -2989,10 +2989,10 @@
         </member>
         <member name="M:KeepCoding.Helper.NameOfAssembly(System.Type)">
             <summary>
-            Gets the assembly's directory where the type <paramref name="type"/> exists.
+            Gets the assembly name where a <see cref="T:System.Type"/> comes from.
             </summary>
-            <param name="type">The type to get the assembly directory of.</param>
-            <returns>The path to the directory of the assembly where the type <paramref name="type"/> comes from.</returns>
+            <param name="type">The type to get the assembly name from.</param>
+            <returns>The <see cref="T:System.Reflection.Assembly"/> name from <paramref name="type"/>.</returns>
         </member>
         <member name="M:KeepCoding.Helper.NullOrEmptyCheck(System.String,System.String)">
             <summary>
@@ -8453,8 +8453,9 @@
             <summary>
             The version number of the entire mod.
             </summary>
-            <exception cref="T:System.OperationCanceledException"></exception>
-            <exception cref="T:System.IO.FileNotFoundException"></exception>
+            <exception cref="T:KeepCoding.Internal.EmptyIteratorException"></exception>
+            <exception cref="T:Newtonsoft.Json.JsonException"></exception>
+            <exception cref="T:KeepCoding.Internal.NullIteratorException"></exception>
         </member>
         <member name="F:KeepCoding.ModuleScript.Colorblind">
             <summary>
