@@ -9,11 +9,11 @@ using Rnd = UnityEngine.Random;
 
 public class CrittersScript : ModuleScript
 {
-    public KMSelectable SubmitButton, ResetButton, ReferenceTile;
+    public KMSelectable SubmitButton, ResetButton, ClearButton, ReferenceTile;
     public GameObject ReferenceObject;
-    public MeshRenderer ReferenceMesh, SubmitButtonMesh, ResetButtonMesh, ColourblindKey;
+    public MeshRenderer ReferenceMesh, SubmitButtonMesh, ResetButtonMesh, ColourblindKey, ClearButtonMesh;
     public Material[] States, Alterations;
-    public TextMesh ColourblindText;
+    public TextMesh ColourblindText, ClearText;
     public AudioClip[] ButtonSounds;
 
     private KMBombModule _Module;
@@ -33,7 +33,7 @@ public class CrittersScript : ModuleScript
     };
     private string[] _colourNames = new string[3] { "Yellow", "Pink", "Blue" };
     private string[] _alterationLogging = new string[3] { "using the standard ruleset", "using the alternative ruleset", "using the reverse ruleset" };
-    private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted, _isModuleBeingAutoSolved;
+    private bool _isModuleSolved, _isSeedSet, _isGridGenerated, _isSubmitButtonHighlighted, _isAnimationRunning, _isResetButtonHighlighted, _isModuleBeingAutoSolved, _isClearButtonHighlighted, _isModuleClearing;
     private int _seed, _randomiser;
     private float[] _referenceCoordinate = new float[3];
     private int[] _grid = new int[64];
@@ -76,7 +76,11 @@ public class CrittersScript : ModuleScript
         
         ResetButton.Assign(onHighlight: () => { _isResetButtonHighlighted = true; });
         ResetButton.Assign(onHighlightEnded: () => { _isResetButtonHighlighted = false; });
-        ResetButton.Assign(onInteract: () => { PressResetButton(); });
+        ResetButton.Assign(onInteract: () => { StartCoroutine(PressResetButton()); });
+
+        ClearButton.Assign(onHighlight: () => { _isClearButtonHighlighted = true; });
+        ClearButton.Assign(onHighlightEnded: () => { _isClearButtonHighlighted = false; });
+        ClearButton.Assign(onInteract: () => { StartCoroutine(PressClearButton()); });
 
         _Module.GetComponent<KMSelectable>().UpdateChildren();
 
@@ -94,6 +98,8 @@ public class CrittersScript : ModuleScript
 
         ColourblindText.text = _colourNames[_randomiser][0].ToString();
         ColourblindText.color = new Color32[] { new Color32(255, 255, 128, 255), new Color32(255, 128, 255, 255), new Color32(128, 192, 255, 255) }[_randomiser];
+
+        ClearText.color = new Color32[] { new Color32(255, 255, 128, 255), new Color32(255, 128, 255, 255), new Color32(128, 192, 255, 255) }[_randomiser];
 
         Log("The colour shown on the module is " + _colourNames[_randomiser] + ", which indicates that we will be " + _alterationLogging[_randomiser] + ".");
 
@@ -196,7 +202,7 @@ public class CrittersScript : ModuleScript
 
     private void PressSubmitButton()
     {
-        if (_isModuleSolved || _isAnimationRunning)
+        if (_isModuleSolved || _isAnimationRunning || _isModuleClearing)
             return;
 
         if (_submissionGrid.Join("") != _expectedGrid.Join(""))
@@ -229,44 +235,57 @@ public class CrittersScript : ModuleScript
         }
         else
         {
-            Solve("Submitted correct grid.");
-            ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
-            StartCoroutine(PostSolve());
+            _isModuleSolved = true;
+            Solve("Submitted correct grid. Module solved!");
             SubmitButton.transform.localPosition += new Vector3(0, 0.003f, 0);
             ResetButton.transform.localPosition += new Vector3(0, 0.003f, 0);
-            _isModuleSolved = true;
+            ClearButton.transform.localPosition += new Vector3(0, 0.003f, 0);
             SubmitButtonMesh.material = Alterations[3];
-            ColourblindText.text = "!";
-            ColourblindText.color = new Color32(32, 32, 32, 255);
+            ClearButtonMesh.material = Alterations[3];
             ColourblindKey.material = Alterations[3];
+            ColourblindText.text = "!";
+            ClearText.text = "!";
+            StartCoroutine(PostSolve());
+            ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
+            ColourblindText.color = new Color32(32, 32, 32, 255);
+            ClearText.color = new Color32(32, 32, 32, 255);
         }
     }
     
-    private void PressResetButton()
+    private IEnumerator PressResetButton()
     {
-        if (_isModuleSolved || _isAnimationRunning)
-            return;
+        if (_isModuleSolved || _isAnimationRunning || _isModuleClearing)
+            yield break;
+        _isModuleClearing = true;
+        List<KMSelectable> RequiredPresses = new List<KMSelectable>();
         for (int i = 0; i < 64; i++)
+            if(_submissionGrid[i] != _grid[i])
+                RequiredPresses.Add(_Tiles[i]);
+
+        foreach (KMSelectable Press in RequiredPresses)
         {
-            switch (_submissionGrid[i])
-            {
-                case 0:
-                    _TileMeshes[i].material = States[0];
-                    break;
-                case 1:
-                    _TileMeshes[i].material = Alterations[_randomiser];
-                    _Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
-                    break;
-            }
-
-            _submissionGrid[i] = _grid[i];
-
-            if (_grid[i] == 1)
-            {
-                _TileMeshes[i].material = Alterations[_randomiser];
-                _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
-            }
+            Press.OnInteract();
+            yield return new WaitForSeconds(0.15f);
         }
+        _isModuleClearing = false;
+    }
+
+    private IEnumerator PressClearButton()
+    {
+        if (_isModuleSolved || _isAnimationRunning || _isModuleClearing)
+            yield break;
+        _isModuleClearing = true;
+        List<KMSelectable> RequiredPresses = new List<KMSelectable>();
+        for(int i = 0; i < 64; i++)
+            if (_submissionGrid[i] == 1)
+                RequiredPresses.Add(_Tiles[i]);
+
+        foreach (KMSelectable Press in RequiredPresses)
+        {
+            Press.OnInteract();
+            yield return new WaitForSeconds(0.15f);
+        }
+        _isModuleClearing = false;
     }
 
     private IEnumerator ButtonAnimation(int index, string state)
@@ -314,7 +333,10 @@ public class CrittersScript : ModuleScript
                         break;
                     case 1:
                         _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0175f, _Tiles[i].transform.localPosition.z);
-                        _TileMeshes[i].material = Alterations[3];
+                        if(!_isModuleBeingAutoSolved)
+                            _TileMeshes[i].material = Alterations[3];
+                        else
+                            _TileMeshes[i].material = Alterations[4];
                         break;
                 }
             }
@@ -346,13 +368,17 @@ public class CrittersScript : ModuleScript
                 ResetButtonMesh.material = States[2];
             else
                 ResetButtonMesh.material = States[0];
+            if (_isClearButtonHighlighted)
+                ClearButtonMesh.material = States[2];
+            else
+                ClearButtonMesh.material = States[0];
         }
     }
 
     // TP Support ?
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit' or '!{0} s' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. All commands are chainable using spaces.";
+    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit', '!{0} s', or '!{0} sub' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. '!{0} c', '!{0} clr', or '!{0} clear' to clear the grid. All commands are chainable using spaces.";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string input)
@@ -364,9 +390,13 @@ public class CrittersScript : ModuleScript
         Dictionary<string, KMSelectable> buttonNames = new Dictionary<string, KMSelectable>()
         {
             { "submit", SubmitButton },
+            { "sub", SubmitButton },
             { "s", SubmitButton },
             { "reset", ResetButton },
-            { "r", ResetButton }
+            { "r", ResetButton },
+            { "clear", ClearButton },
+            { "clr", ClearButton },
+            { "c", ClearButton }
         };
 
         List<KMSelectable> Tiles = new List<KMSelectable>();
@@ -393,9 +423,11 @@ public class CrittersScript : ModuleScript
         else
             foreach (KMSelectable Tile in Tiles)
             {
+                while (_isModuleClearing)
+                    yield return new WaitForSeconds(0.1f);
                 yield return null;
                 Tile.OnInteract();
-                yield return new WaitForSeconds(0.1f);
+                yield return new WaitForSeconds(0.15f);
             }
     }
 
@@ -413,18 +445,22 @@ public class CrittersScript : ModuleScript
         {
             yield return null;
             Tile.OnInteract();
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.15f);
         }
-        
+
         Solve("This module was forcefully solved.");
-        ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
-        StartCoroutine(PostSolve());
         SubmitButton.transform.localPosition += new Vector3(0, 0.003f, 0);
         ResetButton.transform.localPosition += new Vector3(0, 0.003f, 0);
+        ClearButton.transform.localPosition += new Vector3(0, 0.003f, 0);
+        SubmitButtonMesh.material = Alterations[4];
+        ClearButtonMesh.material = Alterations[4];
+        ColourblindKey.material = Alterations[4];
+        ColourblindText.text = "?";
+        ClearText.text = "?";
         _isModuleSolved = true;
-        SubmitButtonMesh.material = Alterations[3];
-        ColourblindText.text = "!";
+        StartCoroutine(PostSolve());
+        ButtonEffect(SubmitButton, 1, ButtonSounds[1]);
         ColourblindText.color = new Color32(32, 32, 32, 255);
-        ColourblindKey.material = Alterations[3];
+        ClearText.color = new Color32(32, 32, 32, 255);
     }
 }
