@@ -208,30 +208,7 @@ public class CrittersScript : ModuleScript
         if (_submissionGrid.Join("") != _expectedGrid.Join(""))
         {
             Strike("Submitted grid: " + _submissionGrid.Join("") + ". Expected grid: " + _expectedGrid.Join("") + ". Strike!");
-
-            for (int i = 0; i < 64; i++)
-            {
-                switch (_submissionGrid[i])
-                {
-                    case 0:
-                        _TileMeshes[i].material = States[0];
-                        break;
-                    case 1:
-                        _TileMeshes[i].material = Alterations[_randomiser];
-                        _Tiles[i].transform.localPosition -= new Vector3(0, 0.003f, 0);
-                        break;
-                }
-                _submissionGrid[i] = _grid[i];
-                switch (_grid[i])
-                {
-                    case 1:
-                        _TileMeshes[i].material = Alterations[_randomiser];
-                        _Tiles[i].transform.localPosition += new Vector3(0, 0.003f, 0);
-                        break;
-                    default:
-                        break;
-                }
-            }
+            StartCoroutine(PressResetButton());
         }
         else
         {
