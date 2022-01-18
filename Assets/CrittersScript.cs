@@ -158,7 +158,7 @@ public class CrittersScript : ModuleScript
 
     private void PressTile(int index)
     {
-        ButtonEffect(_Tiles[index], 0.5f, ButtonSounds[0]);
+        ButtonEffect(_Tiles[index], 0.15f, ButtonSounds[0]);
         if (_isModuleSolved || _isAnimationRunning)
             return;
         switch(_submissionGrid[index])
