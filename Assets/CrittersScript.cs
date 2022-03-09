@@ -387,12 +387,14 @@ public class CrittersScript : ModuleScript
                 int col = button[1] - '1';
 
                 if (row < 0 || col < 0 || row > 7 || col > 7)
-                    yield return null;
+                    yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
 
                 Tiles.Add(_Tiles[(8 * col) + row]);
             }
             else if (buttonNames.TryGetValue(button, out Tile))
                 Tiles.Add(Tile);
+            else
+                yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
         }
 
         if(Tiles.Count() == 0)

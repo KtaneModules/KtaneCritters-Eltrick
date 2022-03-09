@@ -21,6 +21,6 @@ MonoBehaviour:
 
 
     PS. Yes the version number contains 69 in it, sue me.'
-  version: 0.69.8194
+  version: 0.69.8195
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 07c970bfb99d51948819fa0cf5fe3397, type: 3}
