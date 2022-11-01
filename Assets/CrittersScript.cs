@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using KModkit;
+using System.Text.RegularExpressions;
 using KeepCoding;
 using UnityEngine;
 using Rnd = UnityEngine.Random;
@@ -43,7 +43,7 @@ public class CrittersScript : ModuleScript
     // Use this for initialization
     private void Start()
     {
-        if(!_isSeedSet)
+        if (!_isSeedSet)
         {
             _seed = Rnd.Range(int.MinValue, int.MaxValue);
             Log("The seed is: " + _seed.ToString());
@@ -73,7 +73,7 @@ public class CrittersScript : ModuleScript
         SubmitButton.Assign(onHighlight: () => { _isSubmitButtonHighlighted = true; });
         SubmitButton.Assign(onHighlightEnded: () => { _isSubmitButtonHighlighted = false; });
         SubmitButton.Assign(onInteract: () => { PressSubmitButton(); });
-        
+
         ResetButton.Assign(onHighlight: () => { _isResetButtonHighlighted = true; });
         ResetButton.Assign(onHighlightEnded: () => { _isResetButtonHighlighted = false; });
         ResetButton.Assign(onInteract: () => { StartCoroutine(PressResetButton()); });
@@ -84,7 +84,7 @@ public class CrittersScript : ModuleScript
 
         _Module.GetComponent<KMSelectable>().UpdateChildren();
 
-        if(!_isGridGenerated)
+        if (!_isGridGenerated)
         {
             _isGridGenerated = true;
             GenerateTiles();
@@ -161,11 +161,11 @@ public class CrittersScript : ModuleScript
         ButtonEffect(_Tiles[index], 0.15f, ButtonSounds[0]);
         if (_isModuleSolved || _isAnimationRunning)
             return;
-        switch(_submissionGrid[index])
+        switch (_submissionGrid[index])
         {
             case 0:
                 _submissionGrid[index] = 1;
-                if(_ButtonCoroutine == null)
+                if (_ButtonCoroutine == null)
                 {
                     _ButtonCoroutine = ButtonAnimation(index, "1");
                     StartCoroutine(_ButtonCoroutine);
@@ -228,7 +228,7 @@ public class CrittersScript : ModuleScript
             ClearText.color = new Color32(32, 32, 32, 255);
         }
     }
-    
+
     private IEnumerator PressResetButton()
     {
         if (_isModuleSolved || _isAnimationRunning || _isModuleClearing)
@@ -236,7 +236,7 @@ public class CrittersScript : ModuleScript
         _isModuleClearing = true;
         List<KMSelectable> RequiredPresses = new List<KMSelectable>();
         for (int i = 0; i < 64; i++)
-            if(_submissionGrid[i] != _grid[i])
+            if (_submissionGrid[i] != _grid[i])
                 RequiredPresses.Add(_Tiles[i]);
 
         foreach (KMSelectable Press in RequiredPresses)
@@ -253,7 +253,7 @@ public class CrittersScript : ModuleScript
             yield break;
         _isModuleClearing = true;
         List<KMSelectable> RequiredPresses = new List<KMSelectable>();
-        for(int i = 0; i < 64; i++)
+        for (int i = 0; i < 64; i++)
             if (_submissionGrid[i] == 1)
                 RequiredPresses.Add(_Tiles[i]);
 
@@ -270,16 +270,16 @@ public class CrittersScript : ModuleScript
         _isAnimationRunning = true;
         var originalLocation = _Tiles[index].transform.localPosition;
 
-        if(state == "1")
+        if (state == "1")
         {
-            for(int i = 0; i <= 3; i++)
+            for (int i = 0; i <= 3; i++)
             {
                 _Tiles[index].transform.localPosition = new Vector3(originalLocation.x, originalLocation.y + i / 1000f, originalLocation.z);
                 yield return null;
             }
             _TileMeshes[index].material = States[0];
         }
-        else if(state == "0")
+        else if (state == "0")
         {
             for (int i = 0; i <= 3; i++)
             {
@@ -296,7 +296,7 @@ public class CrittersScript : ModuleScript
     private IEnumerator PostSolve()
     {
         yield return null;
-        while(true)
+        while (true)
         {
             for (int i = 0; i < 2; i++)
                 _currentState = IteratePartial(_currentState, _iterators[_randomiser], (i + _randomiser / 2) % 2);
@@ -310,7 +310,7 @@ public class CrittersScript : ModuleScript
                         break;
                     case 1:
                         _Tiles[i].transform.localPosition = new Vector3(_Tiles[i].transform.localPosition.x, 0.0175f, _Tiles[i].transform.localPosition.z);
-                        if(!_isModuleBeingAutoSolved)
+                        if (!_isModuleBeingAutoSolved)
                             _TileMeshes[i].material = Alterations[3];
                         else
                             _TileMeshes[i].material = Alterations[4];
@@ -355,59 +355,77 @@ public class CrittersScript : ModuleScript
     // TP Support ?
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit', '!{0} s', or '!{0} sub' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. '!{0} c', '!{0} clr', or '!{0} clear' to clear the grid. All commands are chainable using spaces.";
+    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit', '!{0} s', or '!{0} sub' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. '!{0} c', '!{0} clr', or '!{0} clear' to clear the grid. All commands are chainable using spaces. Finally, '!{0} <64 binary digits>s' to submit the grid, with 0 being black and 1 being coloured.";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string input)
     {
         if (_isModuleBeingAutoSolved)
             yield break;
-        string[] split = input.ToLowerInvariant().Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
-
-        Dictionary<string, KMSelectable> buttonNames = new Dictionary<string, KMSelectable>()
+        if (Regex.IsMatch(input, "([01]{64})?s"))
         {
-            { "submit", SubmitButton },
-            { "sub", SubmitButton },
-            { "s", SubmitButton },
-            { "reset", ResetButton },
-            { "r", ResetButton },
-            { "clear", ClearButton },
-            { "clr", ClearButton },
-            { "c", ClearButton }
-        };
+            var matches = Regex.Matches(input, "[01]");
 
-        List<KMSelectable> Tiles = new List<KMSelectable>();
-
-        foreach (string button in split)
-        {
-            KMSelectable Tile;
-            if (button.Length == 2)
-            {
-                int row = button[0] - 'a';
-                int col = button[1] - '1';
-
-                if (row < 0 || col < 0 || row > 7 || col > 7)
-                    yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
-
-                Tiles.Add(_Tiles[(8 * col) + row]);
-            }
-            else if (buttonNames.TryGetValue(button, out Tile))
-                Tiles.Add(Tile);
-            else
-                yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
-        }
-
-        if(Tiles.Count() == 0)
             yield return null;
-        else
-            foreach (KMSelectable Tile in Tiles)
+            for (int i = 0; i < matches.Count; i++)
             {
-                while (_isModuleClearing)
-                    yield return new WaitForSeconds(0.1f);
-                yield return null;
-                Tile.OnInteract();
-                yield return new WaitForSeconds(0.15f);
+                if (int.Parse(matches[i].Value) != _grid[i])
+                {
+                    _Tiles[i].OnInteract();
+                    yield return new WaitForSeconds(0.15f);
+                }
             }
+            SubmitButton.OnInteract();
+        }
+        else
+        {
+            string[] split = input.ToLowerInvariant().Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            Dictionary<string, KMSelectable> buttonNames = new Dictionary<string, KMSelectable>()
+            {
+                { "submit", SubmitButton },
+                { "sub", SubmitButton },
+                { "s", SubmitButton },
+                { "reset", ResetButton },
+                { "r", ResetButton },
+                { "clear", ClearButton },
+                { "clr", ClearButton },
+                { "c", ClearButton }
+            };
+
+            List<KMSelectable> Tiles = new List<KMSelectable>();
+
+            foreach (string button in split)
+            {
+                KMSelectable Tile;
+                if (button.Length == 2)
+                {
+                    int row = button[0] - 'a';
+                    int col = button[1] - '1';
+
+                    if (row < 0 || col < 0 || row > 7 || col > 7)
+                        yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
+
+                    Tiles.Add(_Tiles[(8 * col) + row]);
+                }
+                else if (buttonNames.TryGetValue(button, out Tile))
+                    Tiles.Add(Tile);
+                else
+                    yield return "sendtochaterror The command contains an invalid button: '" + button + "'. Try again.";
+            }
+
+            if (Tiles.Count() == 0)
+                yield return null;
+            else
+                foreach (KMSelectable Tile in Tiles)
+                {
+                    while (_isModuleClearing)
+                        yield return new WaitForSeconds(0.1f);
+                    yield return null;
+                    Tile.OnInteract();
+                    yield return new WaitForSeconds(0.15f);
+                }
+        }
     }
 
     IEnumerator TwitchHandleForcedSolve()
@@ -419,7 +437,7 @@ public class CrittersScript : ModuleScript
         for (int i = 0; i < 64; i++)
             if (_submissionGrid[i] != _expectedGrid[i])
                 TilesToPress.Add(_Tiles[i]);
-        
+
         foreach (KMSelectable Tile in TilesToPress)
         {
             yield return null;
