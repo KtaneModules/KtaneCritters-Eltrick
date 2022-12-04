@@ -355,14 +355,14 @@ public class CrittersScript : ModuleScript
     // TP Support ?
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit', '!{0} s', or '!{0} sub' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. '!{0} c', '!{0} clr', or '!{0} clear' to clear the grid. All commands are chainable using spaces. Finally, '!{0} <64 binary digits>s' to submit the grid, with 0 being black and 1 being coloured.";
+    private string TwitchHelpMessage = "'!{0} (a-h)(1-8)' to toggle the state of the tile at that position. '!{0} submit', '!{0} s', or '!{0} sub' to submit the current state. '!{0} reset' or '!{0} r' to revert the module to its initial state. '!{0} c', '!{0} clr', or '!{0} clear' to clear the grid. All commands are chainable using spaces. Finally, '!{0} <64 binary digits>' to submit the grid, with 0 being black and 1 being coloured.";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string input)
     {
         if (_isModuleBeingAutoSolved)
             yield break;
-        if (Regex.IsMatch(input, "([01]{64})?s"))
+        if (Regex.IsMatch(input, "([01]{64})"))
         {
             var matches = Regex.Matches(input, "[01]");
 
