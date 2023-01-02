@@ -369,7 +369,7 @@ public class CrittersScript : ModuleScript
             yield return null;
             for (int i = 0; i < matches.Count; i++)
             {
-                if (int.Parse(matches[i].Value) != _grid[i])
+                if (int.Parse(matches[i].Value) != _submissionGrid[i])
                 {
                     _Tiles[i].OnInteract();
                     yield return new WaitForSeconds(0.15f);
