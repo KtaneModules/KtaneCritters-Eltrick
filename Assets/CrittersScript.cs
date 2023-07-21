@@ -369,6 +369,8 @@ public class CrittersScript : ModuleScript
             yield return null;
             for (int i = 0; i < matches.Count; i++)
             {
+                while (_isAnimationRunning)
+                    yield return null;
                 if (int.Parse(matches[i].Value) != _submissionGrid[i])
                 {
                     _Tiles[i].OnInteract();
@@ -425,9 +427,11 @@ public class CrittersScript : ModuleScript
             else
                 foreach (KMSelectable Tile in Tiles)
                 {
-                    while (_isModuleClearing)
-                        yield return new WaitForSeconds(0.1f);
                     yield return null;
+                    while (_isModuleClearing)
+                        yield return null;
+                    while (_isAnimationRunning)
+                        yield return null;
                     Tile.OnInteract();
                     yield return new WaitForSeconds(0.15f);
                 }
